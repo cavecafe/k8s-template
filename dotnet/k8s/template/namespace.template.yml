@@ -1,0 +1,8 @@
+### PLEASE DO NOT MODIFY THIS FILE
+### THIS IS A TEMPLATE ONLY
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: __{namespace}__
+---

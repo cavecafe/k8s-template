@@ -1,0 +1,40 @@
+### PLEASE DO NOT MODIFY THIS FILE
+### THIS IS A TEMPLATE ONLY
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __{namespace}__
+  namespace: __{namespace}__
+  labels:
+    app: __{namespace}__
+spec:
+  replicas: __{replicas}__
+  selector:
+    matchLabels:
+      app: __{namespace}__
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: __{namespace}__
+      labels:
+        app: __{namespace}__
+    spec:
+      containers:
+        - name: __{namespace}__
+          image: __{image_repository}__:__{image_tag}__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: __{target_port}__
+          securityContext:
+            runAsUser: __{run_as_user}__
+            runAsGroup: __{run_as_group}__
+          resources:
+            requests:
+              memory: __{memory_request}__
+              cpu: __{cpu_request}__
+      restartPolicy: Always

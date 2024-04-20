@@ -1,0 +1,37 @@
+### PLEASE DO NOT MODIFY THIS FILE
+### THIS IS A TEMPLATE ONLY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __{namespace}__-service
+  namespace: __{namespace}__
+spec:
+  selector:
+    app: __{namespace}__
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: __{target_port}__
+      nodePort: __{node_port}__
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: __{namespace}__-ingress
+  namespace: __{namespace}__
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: '__{host_name}__'
+      http:
+        paths:
+          - backend:
+              service:
+                name: __{namespace}__-service-internal
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
+---
