@@ -1,0 +1,6 @@
+.env
+.env.POC
+.env.*
+.secret.yml
+.DS_Store
+secret.yml

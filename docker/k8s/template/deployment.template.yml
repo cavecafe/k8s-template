@@ -26,9 +26,13 @@ spec:
     spec:
       imagePullSecrets:
         - name: dockerhub-secret
+      securityContext:
+        runAsUser: __{run_as_user}__
+        runAsGroup: __{run_as_group}__
+        fsGroup: __{run_as_group}__
       containers:
         - name: __{namespace}__
-          image: __{image_repository}__:__{image_tag}__
+          image: '__{image_repository}__:__{image_tag}__'
           imagePullPolicy: Always
           ports:
             - containerPort: __{container_port}__
@@ -39,4 +43,11 @@ spec:
             requests:
               memory: "__{memory_request}__"
               cpu: "__{cpu_request}__"
+          volumeMounts:
+            - name: __{namespace}__
+              mountPath: "/__{namespace}__"
       restartPolicy: Always
+      volumes:
+        - name: __{namespace}__
+          persistentVolumeClaim:
+            claimName: __{namespace}__

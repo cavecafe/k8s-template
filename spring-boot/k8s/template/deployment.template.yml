@@ -24,10 +24,12 @@ spec:
       labels:
         app: __{namespace}__
     spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
       containers:
         - name: __{namespace}__
           image: __{image_repository}__:__{image_tag}__
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: __{target_port}__
           securityContext:

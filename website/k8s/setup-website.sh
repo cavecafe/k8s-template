@@ -208,18 +208,16 @@ downloadTemplate namespace.template.yml
 downloadTemplate network.template.yml
 downloadTemplate secret.template.yml
 
-addGitIgnore .env
-addGitIgnore .env.*
-addGitIgnore secret.yml
-addGitIgnore .secret.yml
-addGitIgnore .secret.*.yml
-addGitIgnore .DS_Store
-
 ENV=$1
 echo "ENV: $ENV"
 initEnvironment "$ENV"
 checkEnvironment "$ENV"
 applyTemplateEnvironmentValues "$ENV"
+
+addGitIgnore .env
+addGitIgnore .env.*
+addGitIgnore .DS_Store
+addGitIgnore "/${env_path}secret.yml"
 
 kubectl apply -f "${env_path}namespace.yml" || failed "failed to apply ${env_path}namespace.yml"
 kubectl apply -f "${env_path}secret.yml" || failed "failed to apply ${env_path}secret.yml"

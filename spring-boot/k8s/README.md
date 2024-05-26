@@ -1,25 +1,29 @@
 
 Run this command to create a secret in the same namespace as the service account:
 
-* create .env.{your ENV} file with the following content (example):
-with name in the path of k8s/.env.DEV (or k8s/.env.QA, depending on your environment any of POC, DEV, QA, PROD)
+* create .env file with the following content:
 ```
-namespace=<namespace of project to be used in K8s>
-docker_username=<your Docker Hub username>
-docker_password=<your Docker Hub token>
-docker_email=<your email address for Docker Hub>
-exposed_port=<exposed port in public, like 80>
-target_port=<target port, like 8080>
-node_port=<node port, like 30090>
-image_repository=<Docker Hub username>/<Docker Hub registry name>
-image_tag=latest
-host_name=<your DNS hostname for service>
-replicas=<number of replicas for scaling in or out>
-run_as_user=1001
-run_as_group=3000
-memory_request=32Mi
-cpu_request=60m
+namespace=<namespace_of_the_project>
+docker_username=<my_dockerhub_username>
+docker_password=<my_dockerhub_token>
+docker_email=<my_email@email.com>
+image_repository=<dockerhub-user>/<registry-name>
+exposed_port="<external port to be used for sevice>"
+target_port="<internal target port>"
+node_port="<internal node port, ie.30080>"
+host_name="<your website DNS host name, i.e. www.yourdomain.com>"
+replicas="<count of replicas, i.e. 1>"
+image_tag="latest"
+run_as_user="<your user's uid, i.e. 1001>"
+run_as_group="<your user's gid, i.e. 1001>"
+run_as_username="<your app user name, associated with uid and gid>"
+memory_request="<i.e. 32Mi>"
+cpu_request="<i.e. 40m>"
 ```
 
 * Run the following command:
-> ./setup-spring-boot.sh DEV (any of POC, DEV, QA, PROD, as you set before)
+```bash
+# environment_name is optional
+# if not specified, then no environment will be created
+> ./setup-spring-boot.sh [environment_name, i.e. DEV, QA, PROD, etc.]
+```

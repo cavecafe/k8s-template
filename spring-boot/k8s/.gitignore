@@ -1,0 +1,5 @@
+.env
+.env.DEV
+.secret.yml
+.DS_Store
+/DEV/secret.yml

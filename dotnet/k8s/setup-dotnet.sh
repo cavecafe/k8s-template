@@ -1,5 +1,18 @@
 #!/bin/bash
 
+templateType=""
+function setProjectType() {
+    templateType=$1
+    echo "templateType: $templateType"
+}
+
+templateDir=""
+function setTemplateDir() {
+    templateDir=$1
+    echo "templateDir: $templateDir"
+    mkdir -p "${templateDir}" || failed "failed to create template directory $templateDir"
+}
+
 function failed() {
    local error=${1:-Undefined error}
    echo "Failed: $error" >&2
@@ -25,8 +38,8 @@ function addGitIgnore() {
 }
 
 function downloadTemplate() {
-   yml=$1
-   repo="https://raw.githubusercontent.com/cavecafe/k8s-template/main/dotnet/k8s"
+   yml=${templateDir}/$1
+   repo="https://raw.githubusercontent.com/cavecafe/k8s-template/main/${templateType}/k8s"
    if [ -f "$yml" ]; then
      echo "$yml exists"
    else
@@ -36,15 +49,18 @@ function downloadTemplate() {
    fi
 }
 
-mkdir -p template || failed "failed to create template directory"
-downloadTemplate template/deployment.template.yml
-downloadTemplate template/namespace.template.yml
-downloadTemplate template/network.template.yml
-downloadTemplate template/secret.template.yml
+setProjectType "dotnet"
+setTemplateDir "template"
+
+downloadTemplate deployment.template.yml
+downloadTemplate namespace.template.yml
+downloadTemplate network.template.yml
+downloadTemplate secret.template.yml
 
 addGitIgnore .env
 addGitIgnore .env.*
 addGitIgnore .secret.yml
+addGitIgnore secret.yml
 addGitIgnore .secret.*.yml
 addGitIgnore .DS_Store
 
