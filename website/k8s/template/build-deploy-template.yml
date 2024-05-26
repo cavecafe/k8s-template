@@ -1,0 +1,187 @@
+name: Build and Deploy to K8s
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+
+env:
+  REPO_PATH: ${{github.repository}}
+  GIT_BRANCH: ${{github.ref_name}}
+  AUTHOR: ${{github.actor}}
+
+  # template type (it is used when no template.yml exist, from which GitHub path to download the template in setup-*.sh)
+  # "https://raw.githubusercontent.com/cavecafe/k8s-template/main/${templateType}/k8s"
+  TEMPLATE_TYPE: website
+
+  # K8s namespace to be used,
+  # default is to take the value from the repo name
+  # and replace spaces or dots with hyphens
+  # no spaces or dots allowed in namespace
+  # NAMESPACE: ""
+
+  # DEV, STG, PRD, or any other environment name,
+  # which is to be used as a postfix for the environment file name
+  # (e.g. '.env.DEV', '.env.STG', '.env.PRD' or '.env')
+  # default is ""
+  # PROJECT_ENVIRONMENT: ""
+
+  # project name
+  # default is same as namespace
+  # PROJECT_NAME: ""
+
+  # exposed TCP ports for the service
+  # if not set, no port opened (meaning works as client)
+  EXPOSED_PORTS: "80"
+
+  # UID and GID for the application
+  APP_UID: 1002
+  APP_GID: 1002
+
+  # symbolic name of app service user
+  APP_USERNAME: "app_user"
+
+  # any other environment variables can be added
+  # PROJECT_ARCH: "linux/amd64"
+
+jobs:
+  build-push-deploy:
+    runs-on: [self-hosted, linux]
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set environment variables
+      run: |
+        REPO_NAME=$(basename ${{env.REPO_PATH}})
+        echo "REPO_NAME=$REPO_NAME" | tee -a $GITHUB_ENV
+        GIT_COMMIT_ID=$(git rev-parse --short HEAD)
+        echo "GIT_COMMIT_ID=$GIT_COMMIT_ID" | tee -a $GITHUB_ENV
+
+        if [[ -z "${{ env.NAMESPACE }}" ]]; then
+            NAMESPACE=$(echo $REPO_NAME | sed 's/[ .]/-/g')
+        else
+            NAMESPACE=$(echo ${{env.NAMESPACE}} | sed 's/[ .]/-/g')
+        fi
+        echo "NAMESPACE=$NAMESPACE" | tee -a $GITHUB_ENV
+
+        if [[ -z "${{ env.PROJECT_ENVIRONMENT }}" ]]; then
+            PROJECT_ENVIRONMENT=""
+        else
+            PROJECT_ENVIRONMENT=${{env.PROJECT_ENVIRONMENT}}
+        fi
+        echo "PROJECT_ENVIRONMENT=$PROJECT_ENVIRONMENT" | tee -a $GITHUB_ENV
+
+        if [[ -z "${{ env.PROJECT_NAME }}" ]]; then
+            PROJECT_NAME=$NAMESPACE
+        else
+            PROJECT_NAME=${{env.PROJECT_NAME}}
+        fi
+        echo "PROJECT_NAME=$PROJECT_NAME" | tee -a $GITHUB_ENV
+
+        TEMPLATE_TYPE=${{env.TEMPLATE_TYPE}}
+        echo "TEMPLATE_TYPE=$TEMPLATE_TYPE" | tee -a $GITHUB_ENV
+        BUILD_VERSION=${{env.GIT_BRANCH}}-$(date +%Y%m%d)-$GIT_COMMIT_ID
+        echo "BUILD_VERSION=$BUILD_VERSION" | tee -a $GITHUB_ENV
+        AUTHOR=${{env.AUTHOR}}
+        echo "AUTHOR=$AUTHOR" | tee -a $GITHUB_ENV
+
+        APP_UID=${{env.APP_UID}}
+        echo "APP_UID=$APP_UID" | tee -a $GITHUB_ENV
+        APP_GID=${{env.APP_GID}}
+        echo "APP_GID=$APP_GID" | tee -a $GITHUB_ENV
+        APP_USERNAME=${{env.APP_USERNAME}}
+        echo "APP_USERNAME=$APP_USERNAME" | tee -a $GITHUB_ENV
+
+      #      - name: Set Custom Environment Variables (if any)
+      #        run: |
+      #          # any other environment variables can be added
+      #          # PROJECT_ARCH='linux/amd64'
+      #          # echo "PROJECT_ARCH=$PROJECT_ARCH" | tee -a $GITHUB_ENV
+
+    - name: Verify environment variables
+      run: |
+        echo REPO_PATH="${{ env.REPO_PATH }}"
+        echo REPO_NAME="${{ env.REPO_NAME }}"
+        echo PROJECT_NAME="${{ env.PROJECT_NAME }}"
+        echo PROJECT_ENVIRONMENT="${{ env.PROJECT_ENVIRONMENT }}"
+        echo NAMESPACE="${{ env.NAMESPACE }}"
+        echo TEMPLATE_TYPE="${{ env.TEMPLATE_TYPE }}"
+        echo GIT_COMMIT_ID="${{ env.GIT_COMMIT_ID }}"
+        echo BUILD_VERSION="${{ env.BUILD_VERSION }}"
+        echo AUTHOR="${{ env.AUTHOR }}"
+        echo EXPOSED_PORTS="${{ env.EXPOSED_PORTS }}"
+
+        echo APP_UID="${{ env.APP_UID }}"
+        echo APP_GID="${{ env.APP_GID }}"
+        echo APP_USERNAME="${{ env.APP_USERNAME }}"
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        logout: false
+
+    - name: Build and Push Docker Image to DockerHub
+      # any other build arguments can be added
+      # --build-arg PROJECT_ARCH=${{env.PROJECT_ARCH}}
+      run: |
+        DOCKERHUB_PATH=${{ secrets.DOCKERHUB_USERNAME }}/${{env.REPO_NAME}}
+        echo DOCKERHUB_PATH=$DOCKERHUB_PATH
+        echo "DOCKERHUB_PATH=$DOCKERHUB_PATH" >> $GITHUB_ENV
+
+        echo start building image $DOCKERHUB_PATH:${{env.VERSION}} ...
+        echo "DOCKER BUILD pwd='$(pwd)'"
+
+        docker build \
+        --build-arg BUILD_VERSION=${{ env.BUILD_VERSION }} \
+        --build-arg REPO_NAME=${{ env.REPO_NAME }} \
+        --build-arg AUTHOR=${{env.AUTHOR}} \
+        --build-arg NAMESPACE=${{env.NAMESPACE}} \
+        --build-arg GIT_COMMIT_ID=${{env.GIT_COMMIT_ID}} \
+        --build-arg PROJECT_NAME=${{env.PROJECT_NAME}} \
+        --build-arg PROJECT_ENVIRONMENT=${{env.PROJECT_ENVIRONMENT}} \
+        --build-arg TEMPLATE_TYPE=${{env.TEMPLATE_TYPE}} \
+        --build-arg EXPOSED_PORTS="${{env.EXPOSED_PORTS}}" \
+        --build-arg APP_UID=${{env.APP_UID}} \
+        --build-arg APP_GID=${{env.APP_GID}} \
+        --build-arg APP_USERNAME=${{env.APP_USERNAME}} \
+        -t $DOCKERHUB_PATH:${{ env.BUILD_VERSION }} .
+
+        echo built image $DOCKERHUB_PATH:${{ env.BUILD_VERSION }}
+        echo tagging image $DOCKERHUB_PATH:${{ env.BUILD_VERSION }}, $DOCKERHUB_PATH:latest ...
+        docker tag $DOCKERHUB_PATH:${{ env.BUILD_VERSION }} $DOCKERHUB_PATH:latest
+        echo pushing image $DOCKERHUB_PATH:latest, $DOCKERHUB_PATH:${{ env.BUILD_VERSION }} ...
+        docker push $DOCKERHUB_PATH:latest
+        docker push $DOCKERHUB_PATH:${{ env.BUILD_VERSION }}
+
+    - name: Set KUBECONFIG
+      uses: Azure/k8s-set-context@v4
+      with:
+        kubeconfig: ${{ secrets.KUBECONFIG }}
+
+    - name: Deploy to Kubernetes
+      run: |
+        echo "K8s DEPLOY pwd='$(pwd)'"
+        if [ -z "${{env.PROJECT_ENVIRONMENT}}" ]; then
+          kubectl apply -f k8s/deployment.yml -n ${{ env.NAMESPACE }}
+        else
+          kubectl apply -f k8s/${{env.PROJECT_ENVIRONMENT}}/deployment.yml -n ${{ env.NAMESPACE }}
+        fi
+        kubectl get deployments -o wide -n ${{ env.NAMESPACE }}
+
+      # (TODO) check if this is needed
+    - name: Restart using new deployment
+      run: |
+        kubectl scale deployment ${{ env.NAMESPACE }} --replicas=0 -n ${{ env.NAMESPACE }}
+        kubectl scale deployment ${{ env.NAMESPACE }} --replicas=1 -n ${{ env.NAMESPACE }}
+
+    - name: Verify deployment
+      run: |
+        kubectl get deployments -o wide -n ${{ env.NAMESPACE }}
+        kubectl get pods -o wide -n ${{ env.NAMESPACE }}
+        kubectl get svc -o wide -n ${{ env.NAMESPACE }}
+        kubectl get ingress -o wide -n ${{ env.NAMESPACE }}

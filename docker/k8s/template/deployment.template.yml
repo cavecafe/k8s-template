@@ -35,11 +35,6 @@ spec:
           securityContext:
             runAsUser: __{run_as_user}__
             runAsGroup: __{run_as_group}__
-          env:
-            - name: ASPNETCORE_HTTPS_PORT
-              value: "__{exposed_port}__"
-            - name: ASPNETCORE_HTTPS_PORTS
-              value: "__{exposed_port}__"
           resources:
             requests:
               memory: "__{memory_request}__"
